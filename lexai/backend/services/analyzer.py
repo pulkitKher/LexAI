@@ -4,12 +4,12 @@ import os
 import re
 from dotenv import load_dotenv
 from models.schemas import AnalysisResponse, Clause, RiskLevel
-
+import time 
 load_dotenv()
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 
 def analyze_document(extracted_text: str) -> AnalysisResponse:
@@ -24,13 +24,22 @@ def analyze_document(extracted_text: str) -> AnalysisResponse:
 
     prompt = build_prompt(extracted_text)
 
-    try:
-        response = model.generate_content(prompt)
-        raw_text = response.text
-        return parse_gemini_response(raw_text)
 
-    except Exception as e:
-        raise ValueError(f"Gemini API error: {str(e)}")
+    for attempt in range(3):
+        try:
+            response = model.generate_content(prompt)
+            raw_text = response.text
+            return parse_gemini_response(raw_text)
+        except Exception as e:
+            err = str(e)
+            if "429" in err and attempt < 2:
+                wait = 30 * (attempt + 1)
+                print(f"Rate limited. Waiting {wait}s before retry {attempt+2}/3...")
+                time.sleep(wait)
+                continue
+            raise ValueError(f"Gemini API error: {err}")
+
+
 
 
 def build_prompt(text: str) -> str:

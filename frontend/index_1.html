@@ -500,7 +500,7 @@
     </div>
     <div class="loader" id="analyzeLoader">
       <div class="spinner"></div>
-      <p>Reading document and identifying clauses…</p>
+      <p id="analyzeLoaderMsg">Reading document and identifying clauses… (may take up to 60s)</p>
     </div>
     <div id="analyzeResults" style="display:none">
       <div class="summary-bar" id="summaryBar"></div>
@@ -643,7 +643,11 @@
       const fd = new FormData();
       fd.append('file', currentFile);
 
-      const res = await fetch(`${API}/api/v2/upload-and-analyze`, { method: 'POST', body: fd });
+      const res = await fetch(`${API}/api/v2/upload-and-analyze`, {
+        method: 'POST',
+        body: fd,
+        signal: AbortSignal.timeout(120000)
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.detail || 'Analysis failed');
@@ -729,8 +733,9 @@
   function toggleClause(header) {
     const body = header.nextElementSibling;
     const chevron = header.querySelector('.chevron');
-    body.classList.toggle('open');
-    chevron.classList.toggle('open');
+    const isOpen = body.style.display === 'block';
+    body.style.display = isOpen ? 'none' : 'block';
+    chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
   }
 
   function activateChat() {
@@ -787,7 +792,11 @@
       const fd = new FormData();
       fd.append('file', reportFile);
 
-      const res = await fetch(`${API}/api/v3/generate-report`, { method: 'POST', body: fd });
+      const res = await fetch(`${API}/api/v3/generate-report`, {
+        method: 'POST',
+        body: fd,
+        signal: AbortSignal.timeout(120000)
+      });
 
       if (!res.ok) {
         const data = await res.json();
