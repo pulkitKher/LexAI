@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexAI — Legal Document Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #1B2A4A;
+      --gold:    #C9A84C;
+      --gold-lt: #F5EDD6;
+      --ink:     #1A1A2E;
+      --muted:   #6B7280;
+      --border:  #E5E7EB;
+      --bg:      #F9FAFB;
+      --white:   #FFFFFF;
+      --red:     #DC2626;
+      --red-lt:  #FEF2F2;
+      --amber:   #D97706;
+      --amber-lt:#FFFBEB;
+      --green:   #16A34A;
+      --green-lt:#F0FDF4;
+      --radius:  10px;
+      --shadow:  0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .logo span { color: var(--gold); }
+    .badge {
+      background: var(--gold-lt);
+      color: var(--gold);
+      font-size: .65rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #2C3E6B 100%);
+      color: var(--white);
+      text-align: center;
+      padding: 4rem 1.5rem 3rem;
+    }
+    .hero-eyebrow {
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1rem;
+      color: rgba(255,255,255,.72);
+      max-width: 520px;
+      margin: 0 auto 2rem;
+      line-height: 1.7;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--gold);
+      font-family: 'Playfair Display', serif;
+    }
+    .stat-label {
+      font-size: .72rem;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: 2px;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 1.75rem;
+      gap: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: .6rem;
+      border: none;
+      background: transparent;
+      border-radius: 7px;
+      font-family: 'Inter', sans-serif;
+      font-size: .85rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+    }
+    .tab.active {
+      background: var(--navy);
+      color: var(--white);
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 1.1rem;
+    }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: var(--bg);
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--gold); background: var(--gold-lt); }
+    .upload-icon { font-size: 2.2rem; margin-bottom: .75rem; }
+    .upload-zone h3 { font-size: 1rem; font-weight: 600; color: var(--navy); margin-bottom: .35rem; }
+    .upload-zone p { font-size: .82rem; color: var(--muted); }
+    .upload-zone input { display: none; }
+    .file-selected {
+      margin-top: 1rem;
+      padding: .6rem 1rem;
+      background: var(--green-lt);
+      border: 1px solid #BBF7D0;
+      border-radius: 6px;
+      font-size: .82rem;
+      color: var(--green);
+      font-weight: 500;
+      display: none;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .65rem 1.4rem;
+      border-radius: 7px;
+      font-family: 'Inter', sans-serif;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .18s;
+    }
+    .btn-primary { background: var(--navy); color: var(--white); width: 100%; justify-content: center; margin-top: 1rem; }
+    .btn-primary:hover:not(:disabled) { background: #243460; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-gold { background: var(--gold); color: var(--white); }
+    .btn-gold:hover { background: #b8943f; }
+    .btn-outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
+    .btn-outline:hover { background: var(--navy); color: var(--white); }
+
+    /* ── LOADER ── */
+    .loader { display: none; text-align: center; padding: 2rem; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto .75rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader p { font-size: .85rem; color: var(--muted); }
+
+    /* ── SUMMARY BAR ── */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+    .summary-item {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+    }
+    .summary-num { font-size: 1.6rem; font-weight: 700; font-family: 'Playfair Display', serif; }
+    .summary-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+    .num-red { color: var(--red); }
+    .num-amber { color: var(--amber); }
+    .num-green { color: var(--green); }
+    .num-navy { color: var(--navy); }
+
+    /* ── CLAUSE CARD ── */
+    .clause {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: .85rem;
+      overflow: hidden;
+    }
+    .clause-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .85rem 1.1rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .clause-header:hover { background: var(--bg); }
+    .clause-title { font-size: .9rem; font-weight: 600; color: var(--navy); }
+    .risk-badge {
+      font-size: .65rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      flex-shrink: 0;
+    }
+    .risk-high { background: var(--red-lt); color: var(--red); border: 1px solid #FECACA; }
+    .risk-medium { background: var(--amber-lt); color: var(--amber); border: 1px solid #FDE68A; }
+    .risk-low { background: var(--green-lt); color: var(--green); border: 1px solid #BBF7D0; }
+
+    .clause-left { display: flex; align-items: center; gap: .75rem; }
+    .risk-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-high { background: var(--red); }
+    .dot-medium { background: var(--amber); }
+    .dot-low { background: var(--green); }
+
+    .clause-body { display: none; padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); }
+    .clause-body.open { display: block; }
+    .clause-section { margin-top: .85rem; }
+    .clause-section label {
+      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); display: block; margin-bottom: .35rem;
+    }
+    .clause-section p { font-size: .87rem; line-height: 1.65; color: var(--ink); }
+    .original-text {
+      background: var(--bg);
+      border-left: 3px solid var(--gold);
+      padding: .65rem .85rem;
+      border-radius: 0 6px 6px 0;
+      font-size: .82rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.6;
+    }
+    .recommendation {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      padding: .65rem .85rem;
+      font-size: .85rem;
+      color: #1D4ED8;
+      line-height: 1.6;
+    }
+    .chevron { transition: transform .2s; font-size: .8rem; color: var(--muted); }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* ── CHAT ── */
+    .chat-messages {
+      height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      background: var(--bg);
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+    .msg {
+      max-width: 82%;
+      padding: .7rem 1rem;
+      border-radius: 12px;
+      font-size: .87rem;
+      line-height: 1.6;
+    }
+    .msg-user { background: var(--navy); color: var(--white); align-self: flex-end; border-radius: 12px 12px 3px 12px; }
+    .msg-ai { background: var(--white); border: 1px solid var(--border); color: var(--ink); align-self: flex-start; border-radius: 12px 12px 12px 3px; }
+    .msg-system { background: var(--gold-lt); color: var(--gold); border: 1px solid #E8D9A8; font-size: .78rem; text-align: center; align-self: center; max-width: 100%; border-radius: 6px; padding: .45rem .85rem; }
+
+    .chat-input-row { display: flex; gap: .6rem; }
+    .chat-input {
+      flex: 1;
+      padding: .65rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: .88rem;
+      outline: none;
+      transition: border .18s;
+    }
+    .chat-input:focus { border-color: var(--navy); }
+    .chat-send { background: var(--navy); color: var(--white); border: none; border-radius: 8px; padding: .65rem 1.1rem; cursor: pointer; font-size: 1rem; transition: background .18s; }
+    .chat-send:hover { background: #243460; }
+    .chat-send:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── SESSION INFO ── */
+    .session-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--green-lt);
+      border: 1px solid #BBF7D0;
+      color: var(--green);
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; padding: 3rem 1rem; }
+    .empty-icon { font-size: 2.5rem; margin-bottom: .75rem; opacity: .4; }
+    .empty h3 { font-size: 1rem; font-weight: 600; color: var(--navy); margin-bottom: .4rem; }
+    .empty p { font-size: .85rem; color: var(--muted); }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer {
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 1.5rem 1rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.6;
+    }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: .75rem 1rem;
+      border-radius: 7px;
+      font-size: .85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .alert-error { background: var(--red-lt); color: var(--red); border: 1px solid #FECACA; }
+    .alert-success { background: var(--green-lt); color: var(--green); border: 1px solid #BBF7D0; }
+
+    /* ── SECTION HEADING ── */
+    .section-heading {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: .5rem .75rem;
+      border-radius: 6px;
+      margin: 1.25rem 0 .75rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .heading-high { background: var(--red-lt); color: var(--red); }
+    .heading-medium { background: var(--amber-lt); color: var(--amber); }
+    .heading-low { background: var(--green-lt); color: var(--green); }
+
+    /* ── REPORT TAB ── */
+    .report-steps { display: flex; flex-direction: column; gap: 1rem; }
+    .step {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 32px; height: 32px;
+      background: var(--navy);
+      color: var(--white);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-content h4 { font-size: .9rem; font-weight: 600; color: var(--navy); margin-bottom: .2rem; }
+    .step-content p { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 1rem; }
+      .hero { padding: 2.5rem 1rem 2rem; }
+      .hero-stats { gap: 1.5rem; }
+      .card { padding: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">⚖ Lex<span>AI</span></div>
+  <span class="badge">Beta</span>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">AI-Powered Legal Protection</div>
+  <h1>Understand any legal document<br>before you sign it</h1>
+  <p>Upload a rental agreement, offer letter, loan paper, or any contract. LexAI reads it, flags the risks, and explains everything in plain English.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Extraction Methods</div></div>
+    <div class="stat"><div class="stat-num">15+</div><div class="stat-label">Clause Types</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Free to Use</div></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('analyze',this)">📄 Analyze Document</button>
+    <button class="tab" onclick="switchTab('chat',this)">💬 Ask Questions</button>
+    <button class="tab" onclick="switchTab('report',this)">📥 Download Report</button>
+  </div>
+
+  <!-- ANALYZE PANE -->
+  <div id="pane-analyze">
+    <div class="card">
+      <div class="card-title">Upload Document</div>
+      <div class="upload-zone" id="dropzone"
+           onclick="document.getElementById('fileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="upload-icon">📂</div>
+        <h3>Drop your document here</h3>
+        <p>PDF, JPG, PNG, WEBP supported &nbsp;·&nbsp; Max 10 MB</p>
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff,.bmp" onchange="fileChosen(this)" />
+        <div class="file-selected" id="fileSelected">✓ <span id="fileName"></span></div>
+      </div>
+      <div class="alert alert-error" id="analyzeError"></div>
+      <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeDoc()" disabled>🔍 Analyze Document</button>
+    </div>
+    <div class="loader" id="analyzeLoader">
+      <div class="spinner"></div>
+      <p>Reading document and identifying clauses…</p>
+    </div>
+    <div id="analyzeResults" style="display:none">
+      <div class="summary-bar" id="summaryBar"></div>
+      <div id="summaryText" class="card" style="padding:1rem 1.25rem;margin-bottom:1rem"></div>
+      <div id="clauseList"></div>
+    </div>
+  </div>
+
+  <!-- CHAT PANE -->
+  <div id="pane-chat" style="display:none">
+    <div id="noSession" class="card">
+      <div class="empty">
+        <div class="empty-icon">💬</div>
+        <h3>No document loaded yet</h3>
+        <p>Go to the Analyze tab, upload and analyze a document first — then come back here to ask questions.</p>
+      </div>
+    </div>
+    <div id="chatArea" style="display:none">
+      <div class="session-pill">● Document session active</div>
+      <div class="card" style="padding:1.1rem">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chatInput" type="text"
+                 placeholder="Ask anything about the document…"
+                 onkeydown="if(event.key==='Enter') sendChat()" />
+          <button class="chat-send" id="chatSend" onclick="sendChat()">➤</button>
+        </div>
+      </div>
+      <div style="margin-top:.6rem;font-size:.78rem;color:var(--muted);text-align:center">
+        Answers are grounded in the uploaded document only.
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT PANE -->
+  <div id="pane-report" style="display:none">
+    <div class="card">
+      <div class="card-title">How It Works</div>
+      <div class="step"><div class="step-num">1</div><div class="step-content"><h4>Upload your document below</h4><p>Select a PDF or image of any legal or financial document.</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><h4>AI analyzes all clauses</h4><p>Gemini identifies every important clause and scores risk levels.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><h4>Download your PDF report</h4><p>A professionally formatted report with every clause, explanation, and recommendation.</p></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Generate PDF Risk Report</div>
+      <div class="upload-zone"
+           onclick="document.getElementById('reportFileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleReportDrop(event)">
+        <div class="upload-icon">📥</div>
+        <h3>Upload document for report</h3>
+        <p>PDF, JPG, PNG supported &nbsp;·&nbsp; Max 10 MB</p>
+        <input type="file" id="reportFileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff,.bmp" onchange="reportFileChosen(this)" />
+        <div class="file-selected" id="reportFileSelected">✓ <span id="reportFileName"></span></div>
+      </div>
+      <div class="alert alert-error" id="reportError"></div>
+      <button class="btn btn-primary" id="reportBtn" onclick="generateReport()" disabled>📥 Generate &amp; Download Report</button>
+      <div class="loader" id="reportLoader">
+        <div class="spinner"></div>
+        <p>Analyzing document and generating PDF report…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    ⚖ LexAI is an AI-powered document assistant for informational purposes only.<br>
+    It does not constitute legal advice. Please consult a qualified lawyer for legal decisions.
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://127.0.0.1:8000';
+  let currentFile = null;
+  let currentSessionId = null;
+  let reportFile = null;
+
+  // ── TAB SWITCHING ──
+  function switchTab(name, btn) {
+    ['analyze','chat','report'].forEach(t => {
+      document.getElementById('pane-' + t).style.display = 'none';
+    });
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('pane-' + name).style.display = 'block';
+    btn.classList.add('active');
+  }
+
+  // ── FILE HANDLING ──
+  function fileChosen(input) {
+    if (!input.files[0]) return;
+    currentFile = input.files[0];
+    document.getElementById('fileName').textContent = currentFile.name;
+    document.getElementById('fileSelected').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('analyzeError').style.display = 'none';
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      currentFile = file;
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSelected').style.display = 'block';
+      document.getElementById('analyzeBtn').disabled = false;
+    }
+  }
+
+  function reportFileChosen(input) {
+    if (!input.files[0]) return;
+    reportFile = input.files[0];
+    document.getElementById('reportFileName').textContent = reportFile.name;
+    document.getElementById('reportFileSelected').style.display = 'block';
+    document.getElementById('reportBtn').disabled = false;
+  }
+
+  function handleReportDrop(e) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      reportFile = file;
+      document.getElementById('reportFileName').textContent = file.name;
+      document.getElementById('reportFileSelected').style.display = 'block';
+      document.getElementById('reportBtn').disabled = false;
+    }
+  }
+
+  // ── ANALYZE ──
+  async function analyzeDoc() {
+    if (!currentFile) return;
+
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('analyzeLoader').style.display = 'block';
+    document.getElementById('analyzeResults').style.display = 'none';
+    document.getElementById('analyzeError').style.display = 'none';
+
+    try {
+      const fd = new FormData();
+      fd.append('file', currentFile);
+
+      const res = await fetch(`${API}/api/v2/upload-and-analyze`, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || 'Analysis failed');
+
+      currentSessionId = data.session_id;
+      renderResults(data);
+      activateChat();
+
+    } catch (err) {
+      showError('analyzeError', '⚠ ' + err.message);
+    } finally {
+      document.getElementById('analyzeLoader').style.display = 'none';
+      document.getElementById('analyzeBtn').disabled = false;
+    }
+  }
+
+  function renderResults(data) {
+    // Summary bar
+    document.getElementById('summaryBar').innerHTML = `
+      <div class="summary-item"><div class="summary-num num-navy">${data.total_clauses_found}</div><div class="summary-label">Clauses Found</div></div>
+      <div class="summary-item"><div class="summary-num num-red">${data.high_risk_count}</div><div class="summary-label">High Risk</div></div>
+      <div class="summary-item"><div class="summary-num num-amber">${data.medium_risk_count}</div><div class="summary-label">Medium Risk</div></div>
+      <div class="summary-item"><div class="summary-num num-green">${data.low_risk_count}</div><div class="summary-label">Low Risk</div></div>
+    `;
+
+    // Summary text
+    document.getElementById('summaryText').innerHTML = `
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+        <span style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Document Type</span>
+        <span style="font-size:.82rem;font-weight:600;color:var(--navy);background:var(--bg);padding:2px 10px;border-radius:20px;border:1px solid var(--border)">${data.document_type}</span>
+      </div>
+      <p style="font-size:.87rem;line-height:1.7;color:var(--ink)">${data.summary}</p>
+    `;
+
+    // Clauses grouped by risk
+    const clauses = data.clauses || [];
+    const groups = [
+      { level: 'high',   label: '🔴 High Risk Clauses',   cls: 'heading-high' },
+      { level: 'medium', label: '🟡 Medium Risk Clauses', cls: 'heading-medium' },
+      { level: 'low',    label: '🟢 Low Risk Clauses',    cls: 'heading-low' },
+    ];
+
+    let html = '';
+    groups.forEach(g => {
+      const items = clauses.filter(c => c.risk_level === g.level);
+      if (!items.length) return;
+      html += `<div class="section-heading ${g.cls}">${g.label} (${items.length})</div>`;
+      items.forEach((c, i) => {
+        html += `
+          <div class="clause">
+            <div class="clause-header" onclick="toggleClause(this)">
+              <div class="clause-left">
+                <div class="risk-dot dot-${c.risk_level}"></div>
+                <span class="clause-title">${c.clause_type}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:.6rem">
+                <span class="risk-badge risk-${c.risk_level}">${c.risk_level}</span>
+                <span class="chevron">▼</span>
+              </div>
+            </div>
+            <div class="clause-body">
+              <div class="clause-section">
+                <label>Original Text</label>
+                <div class="original-text">${c.original_text}</div>
+              </div>
+              <div class="clause-section">
+                <label>Plain Explanation</label>
+                <p>${c.plain_explanation}</p>
+              </div>
+              <div class="clause-section">
+                <label>Recommendation</label>
+                <div class="recommendation">💡 ${c.recommendation}</div>
+              </div>
+            </div>
+          </div>`;
+      });
+    });
+
+    document.getElementById('clauseList').innerHTML = html;
+    document.getElementById('analyzeResults').style.display = 'block';
+  }
+
+  function toggleClause(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron');
+    body.classList.toggle('open');
+    chevron.classList.toggle('open');
+  }
+
+  function activateChat() {
+    document.getElementById('noSession').style.display = 'none';
+    document.getElementById('chatArea').style.display = 'block';
+    document.getElementById('chatMessages').innerHTML = '';
+    addMessage('system', 'Document loaded. Ask me anything about it.');
+  }
+
+  function addMessage(type, text) {
+    const box = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `msg msg-${type}`;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const q = input.value.trim();
+    if (!q || !currentSessionId) return;
+    input.value = '';
+    document.getElementById('chatSend').disabled = true;
+    addMessage('user', q);
+    const aiDiv = addMessage('ai', '…');
+    try {
+      const res = await fetch(`${API}/api/v2/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: currentSessionId, question: q })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Chat failed');
+      aiDiv.textContent = data.answer;
+    } catch (err) {
+      aiDiv.textContent = '⚠ Error: ' + err.message;
+    } finally {
+      document.getElementById('chatSend').disabled = false;
+      document.getElementById('chatInput').focus();
+    }
+  }
+
+  // ── REPORT ──
+  async function generateReport() {
+    if (!reportFile) return;
+
+    document.getElementById('reportBtn').disabled = true;
+    document.getElementById('reportLoader').style.display = 'block';
+    document.getElementById('reportError').style.display = 'none';
+
+    try {
+      const fd = new FormData();
+      fd.append('file', reportFile);
+
+      const res = await fetch(`${API}/api/v3/generate-report`, { method: 'POST', body: fd });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Report generation failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'LexAI_Risk_Report.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      showError('reportError', '⚠ ' + err.message);
+    } finally {
+      document.getElementById('reportLoader').style.display = 'none';
+      document.getElementById('reportBtn').disabled = false;
+    }
+  }
+
+  // ── UTILS ──
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+</script>
+</body>
+</html>
