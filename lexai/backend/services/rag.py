@@ -13,7 +13,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
 # Gemini model for chat
-chat_model = genai.GenerativeModel("gemini-2.0-flash")
+chat_model = genai.GenerativeModel("gemini-2.5-flash-lite") 
 
 
 def chunk_text(text: str) -> list[str]:
