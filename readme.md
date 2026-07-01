@@ -202,7 +202,7 @@ LexAI is an AI-powered document assistant for informational purposes only. It do
 
 ## 👨‍💻 Built By
 
-**Pulkit Kher** — Final year B.Tech CSE (AI/ML)
+**Pulkit Kher** — Final year B.Tech CSE
 
 - GitHub: [github.com/pulkitKher](https://github.com/pulkitKher)
 - Project: Built for MNC placement portfolio demonstrating full-stack GenAI development
